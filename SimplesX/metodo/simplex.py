@@ -7,16 +7,21 @@ from numpy import matrix
 from model.F import F
 
 class Tabela(object):
- 
+    '''
+    Classe que repesenta e resolve um PPL, usando o metodo do "M grande", quando necessário.
+    ''' 
     def __init__(self, funcaoObjetivo,restricoes=None,tipo='<='):
+        #preenche a linha da função objetivo
         self.linhaFuncaoObjetivo = [1] + [c*(-1) for c in funcaoObjetivo] + [0 for r in restricoes] + [0] 
         
+        #preenche as linhas da tabela das restrições
         self.linhasRestricoes = []
         for i,(coeficientes,termo) in enumerate(restricoes):
             zeros = [0 for r in restricoes] 
             zeros[i] = 1       
             self.linhasRestricoes.append([0] + coeficientes + zeros + [termo])
-            
+        
+        #converte todos os valores para instancias de F
         self.linhaFuncaoObjetivo = [F(n) for n in self.linhaFuncaoObjetivo]
         self.linhasRestricoes = [[F(n) for n in l] for l in self.linhasRestricoes]
        
@@ -102,8 +107,53 @@ class Tabela(object):
             
             self.printTabela()
             
-    def solucao(self):
-        self.executar()
+    def _getNomeDeVariavel(self, index):
+        return 'x' + index
+    
+    @property
+    def variaveisDentroBase(self):      
+        dentroDaBase = [] 
+        for c in range(1,len(self.linhaFuncaoObjetivo)-1):
+            valoresColuna = [l[c] for l in self.linhasRestricoes]
+            
+            numDeZeros = len([z for z in valoresColuna if z==F(0)])
+            numDeUms = len([u for u in valoresColuna if u==F(1)])
+            
+            if numDeUms == 1 and numDeZeros == len(self.linhasRestricoes) - 1 :
+                dentroDaBase.append(c)
+
+        return dentroDaBase
+    
+    @property
+    def variaveisForaBase(self):
+        return [i for i in range(1,len(self.linhaFuncaoObjetivo)-1) if i not in self.variaveisDentroBase]
+        
+    @property  
+    def solucaoOtima(self):
+        if not self._solucaoOtimaEncontrada():
+            self.executar() 
+        
+        dentro = self.variaveisDentroBase
+        fora = self.variaveisForaBase
+        
+        solucao = []
+
+        for val in dentro:
+            for l in self.linhasRestricoes:
+                if l[val] == F(1):
+                    solucao.append((val,l[-1]))
+                    break
+        
+        solucao += [(val,F(0)) for val in fora]
+
+        return [(t[0],float(t[1])) for t in solucao]
+        
+    @property
+    def valorOtimo(self):
+        if not self._solucaoOtimaEncontrada():
+            self.executar()
+        
+        return self.linhaFuncaoObjetivo[-1]
              
 if __name__ == '__main__':
     
@@ -137,6 +187,13 @@ if __name__ == '__main__':
     """
     #t = Tabela([3,5],restricoes=[([2, 4], 10),([6, 1], 20),([1, -1], 30)])
     
-    t.executar()
+    #t.executar()
+    
+    print("\nValor otimo: %s (%s)" % (float(t.valorOtimo),t.valorOtimo))
+    
+    print("\nBasicas: %s" % (t.variaveisDentroBase))
+    
+    print("\nNão Basicas: %s" % (t.variaveisForaBase))
 
+    print(t.solucaoOtima)
     

@@ -6,7 +6,9 @@ Created on 6 Jul 2015
 from fractions import Fraction
 
 class F(Fraction):
-
+    '''
+    Classe que representa um numero fracionario, extendendo fractions.Fraction, e implentando a lógica o "M grande"
+    '''   
     def __init__(self,n,M=False):
         self.fraction = Fraction(n)
         self.M=M
