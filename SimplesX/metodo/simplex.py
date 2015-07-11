@@ -32,7 +32,7 @@ class Tabela(object):
                 colExtras[i+1] = 1      
                 self.linhasRestricoes.append(self._converteParaF([0] + coeficientes + colExtras + [termo]))
                 
-                self.linhaFuncaoObjetivo[1 + len(coeficientes) + i + 1] = F(0, F(-1))
+                self.linhaFuncaoObjetivo[1 + len(coeficientes) + i + 1] = F(0, F(1))
         
     def _converteParaF(self,lista):
         return [F(e) for e in lista]
