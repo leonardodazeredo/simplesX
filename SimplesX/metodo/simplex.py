@@ -10,28 +10,36 @@ class Tabela(object):
     '''
     Classe que repesenta e resolve um PPL, usando o metodo do "M grande", quando necessário.
     ''' 
-    def __init__(self, funcaoObjetivo,restricoes=None,tipo='<='):
-        #preenche a linha da função objetivo
-        self.linhaFuncaoObjetivo = [1] + [c*(-1) for c in funcaoObjetivo] + [0 for r in restricoes] + [0] 
-        
+    def __init__(self, funcaoObjetivo,restricoes=None):
+
         #preenche as linhas da tabela das restrições
         self.linhasRestricoes = []
-        for i,(coeficientes,termo) in enumerate(restricoes):
-            zeros = [0 for r in restricoes] 
-            zeros[i] = 1       
-            self.linhasRestricoes.append([0] + coeficientes + zeros + [termo])
         
-        #converte todos os valores para instancias de F
-        self.linhaFuncaoObjetivo = [F(n) for n in self.linhaFuncaoObjetivo]
-        self.linhasRestricoes = [[F(n) for n in l] for l in self.linhasRestricoes]
+        numeroDeVariaveisExtras = len(restricoes) + len([(c,t,tr) for (c,t,tr) in restricoes if t!='<='])
+        
+        #preenche a linha da função objetivo
+        self.linhaFuncaoObjetivo = [1] + [c*(-1) for c in funcaoObjetivo] + [0]*numeroDeVariaveisExtras + [0] 
+        
+        for i,(coeficientes,tipo,termo) in enumerate(restricoes):
+            colExtras = [0]*numeroDeVariaveisExtras
+            
+            if tipo == '<=':
+                colExtras[i] = 1       
+                self.linhasRestricoes.append(self._converteParaF([0] + coeficientes + colExtras + [termo]))
+                      
+            elif tipo=='>=':
+                colExtras[i] = -1
+                colExtras[i+1] = 1      
+                self.linhasRestricoes.append(self._converteParaF([0] + coeficientes + colExtras + [termo]))
+                
+                self.linhaFuncaoObjetivo[1 + len(coeficientes) + i + 1] = F(0, F(-1))
+        
+    def _converteParaF(self,lista):
+        return [F(e) for e in lista]
        
-    def printTabela(self):
-        '''print(self.linhaFuncaoObjetivo)
-        for restricao in self.linhasRestricoes:
-            print(restricao)'''
-        
+    def printTabela(self):      
         tabela = [self.linhaFuncaoObjetivo] + self.linhasRestricoes    
-        print('\n', matrix([[float(f) for f in l] for l in tabela]))
+        print('\n', matrix([[str(f) for f in l] for l in tabela]))
          
     '''
     Encontra a coluna corresponte a variavel que entra da base e retorna seu indice 
@@ -54,7 +62,8 @@ class Tabela(object):
         razoes = []
         for i,termo in enumerate(termos):
             if coefisVariavelEntra[i] == 0:
-                razoes.append(99999999 * abs(max(termos)))
+                razoes.append(F(1,1)) #Usando o M grande para garantir que essa razao é sempre maior e portando a variavel não escolhida
+                #razoes.append(99999999 * abs(max(termos)))
             else:
                 razoes.append(termo/coefisVariavelEntra[i])
                 
@@ -106,9 +115,6 @@ class Tabela(object):
             print('\nColuna do pivo: %s\nLinha do pivo: %s'%(c+1,r))
             
             self.printTabela()
-            
-    def _getNomeDeVariavel(self, index):
-        return 'x' + index
     
     @property
     def variaveisDentroBase(self):      
@@ -155,6 +161,17 @@ class Tabela(object):
         
         return self.linhaFuncaoObjetivo[-1]
              
+             
+def getNomeDeVariavel(index):
+    return 'x' + str(index)
+
+def toStringComNomes(lista):
+    if type(lista[0]) is type(0):
+        return [getNomeDeVariavel(i) for i in lista]
+    
+    elif type(lista[0]) is type(()):
+        return [(getNomeDeVariavel(l[0]),l[1]) for l in lista]
+
 if __name__ == '__main__':
     
     """
@@ -165,7 +182,7 @@ if __name__ == '__main__':
                        z <= 5
             x,y,z >= 0
     """
-    #t = Tabela([2,3,2],restricoes=[([2, 1,1], 4),([1, 2, 1], 7),([0, 0, 1], 5)])
+    #t = Tabela([2,3,2],restricoes=[([2, 1,1],"<=", 4),([1, 2, 1],"<=", 7),([0, 0, 1],"<=", 5)])
     
     """
     max z = 3x + 5y
@@ -175,25 +192,23 @@ if __name__ == '__main__':
              x -  y <= 30
             x,y >= 0
     """
-    t = Tabela([3,5],restricoes=[([2, 4], 10),([6, 1], 20),([1, -1], 30)])
+    #t = Tabela([3,5],restricoes=[([2, 4],"<=", 10),([6, 1],"<=", 20),([1, -1],"<=", 30)])
     
     """
-    max z = 3x + 5y
+    max z = 5x + 2y
     
-    s.a.    2x + 4y <= 10
-            6x +  y <= 20
-             x -  y <= 30
+    s.a.     x      <= 3
+                  y <= 4
+             x + 2y >= 9
             x,y >= 0
     """
-    #t = Tabela([3,5],restricoes=[([2, 4], 10),([6, 1], 20),([1, -1], 30)])
-    
-    #t.executar()
+    t = Tabela([5,2],restricoes=[([1, 0],"<=", 3),([0, 1],"<=", 4),([1, 2],">=", 9)])
     
     print("\nValor otimo: %s (%s)" % (float(t.valorOtimo),t.valorOtimo))
     
-    print("\nBasicas: %s" % (t.variaveisDentroBase))
+    print("\nBasicas: %s" % (toStringComNomes(t.variaveisDentroBase)))
     
-    print("\nNão Basicas: %s" % (t.variaveisForaBase))
+    print("\nNão Basicas: %s" % (toStringComNomes(t.variaveisForaBase)))
 
-    print(t.solucaoOtima)
+    print("\nSolução otima: %s" % (toStringComNomes(t.solucaoOtima)))
     
