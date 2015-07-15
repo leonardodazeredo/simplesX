@@ -25,14 +25,17 @@ class Tabela(object):
             
             if tipo == '<=':
                 colExtras[i] = 1       
-                self.linhasRestricoes.append(self._converteParaF([0] + coeficientes + colExtras + [termo]))
+                
+            elif tipo=='=':
+                colExtras[i] = 1         
+                self.linhaFuncaoObjetivo[1 + len(coeficientes) + i] = F(0, F(1))
                       
             elif tipo=='>=':
                 colExtras[i] = -1
-                colExtras[i+1] = 1      
-                self.linhasRestricoes.append(self._converteParaF([0] + coeficientes + colExtras + [termo]))
-                
+                colExtras[i+1] = 1              
                 self.linhaFuncaoObjetivo[1 + len(coeficientes) + i + 1] = F(0, F(1))
+            
+            self.linhasRestricoes.append(self._converteParaF([0] + coeficientes + colExtras + [termo]))
         
     def _converteParaF(self,lista):
         return [F(e) for e in lista]
@@ -202,7 +205,17 @@ if __name__ == '__main__':
              x + 2y >= 9
             x,y >= 0
     """
-    t = Tabela([5,2],restricoes=[([1, 0],"<=", 3),([0, 1],"<=", 4),([1, 2],">=", 9)])
+    #t = Tabela([5,2],restricoes=[([1, 0],"<=", 3),([0, 1],"<=", 4),([1, 2],">=", 9)])
+    
+    """
+    max z = 5x + 2y
+    
+    s.a.     x      <= 3
+                  y <= 4
+             x + 2y >= 9
+            x,y >= 0
+    """
+    t = Tabela([5,10,15],restricoes=[([1, 1, 1],"<=", 500),([1, 1, 0],">=", 100),([1, -1, -1],"=", 120)])
     
     print("\nValor otimo: %s (%s)" % (float(t.valorOtimo),t.valorOtimo))
     
